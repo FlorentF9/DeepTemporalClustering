@@ -14,7 +14,11 @@ It aims at reproducing the model from the paper with all its features and distan
   * Correlation coefficient-based distance (COR)
   * Autocorrelation-based distance (ACF) [NOT IMPLEMENTED YET]
 
-I draw attention on the fact that unlike many time series algorithm implementations, this implementation is fully compatible with **multivariate** time series. This implementation ships with the datasets from the [UCR/UEA univariate and multivariate time series classification archives](http://http://www.timeseriesclassification.com/) [2,3], available through the [tslearn](https://github.com/rtavenar/tslearn) library [4] ([yichangwang's fork](https://github.com/yichangwang/tslearn) for multivariate datasets archive).
+I draw attention on the fact that unlike many time series algorithm implementations, this implementation is fully compatible with **multivariate** time series.
+
+This implementation ships with the datasets from the [UCR/UEA univariate and multivariate time series classification archives](http://http://www.timeseriesclassification.com/) [2,3], available through the [tslearn](https://github.com/rtavenar/tslearn) library [4] ([yichangwang's fork](https://github.com/yichangwang/tslearn) for multivariate datasets archive).
+
+<img src="./fig/dtc-architecture.png" height=300 />
 
 **Disclaimer**: as the original authors did not publish their code, there is no guarantee that this implementation is *exactly* identical. In particular, there are not much details about how the heatmap-generating network was designed and trained.
 
