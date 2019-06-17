@@ -23,6 +23,8 @@ def load_ucr(dataset='CBF'):
     X_train, y_train, X_test, y_test = ucr.load_dataset(dataset)
     X = np.concatenate((X_train, X_test))
     y = np.concatenate((y_train, y_test))
+    if dataset == 'HandMovementDirection':  # this one has special labels
+        y = [yy[0] for yy in y]
     y = LabelEncoder().fit_transform(y)  # sometimes labels are strings or start from 1
     assert(y.min() == 0)  # assert labels are integers and start from 0
     # preprocess data (standardization)
