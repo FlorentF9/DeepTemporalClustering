@@ -6,6 +6,7 @@ Time Series distances
 """
 
 import numpy as np
+from tslearn.preprocessing import TimeSeriesScalerMeanVariance
 
 
 def eucl(x, y):
@@ -32,10 +33,11 @@ def cor(x, y):
     """
     Correlation-based distance (COR) between two multivariate time series given as arrays of shape (timesteps, dim)
     """
-    x_norm = (x - x.mean(axis=0)) / x.std(axis=0)
-    y_norm = (y - y.mean(axis=0)) / y.std(axis=0)
+    scaler = TimeSeriesScalerMeanVariance()
+    x_norm = scaler.fit_transform(x)
+    y_norm = scaler.fit_transform(y)
     pcc = np.mean(x_norm * y_norm)  # Pearson correlation coefficients
-    d = np.sqrt(2.0 * (1.0 - pcc))  # correlation-based similarities
+    d = np.sqrt(2.0 * (1.0 - pcc + 1e-9))  # correlation-based similarities
     return np.sum(d)
 
 
