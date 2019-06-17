@@ -6,6 +6,7 @@ Time Series distances
 """
 
 import numpy as np
+from statsmodels.tsa import stattools
 from tslearn.preprocessing import TimeSeriesScalerMeanVariance
 
 
@@ -44,5 +45,12 @@ def cor(x, y):
 def acf(x, y):
     """
     Autocorrelation-based distance (ACF) between two multivariate time series given as arrays of shape (timesteps, dim)
+    Computes a linearly weighted euclidean distance between the autocorrelation coefficients of the input time series.
+    Reference: Galeano & Pena (2000). Multivariate Analysis in Vector Time Series.
     """
-    raise NotImplementedError
+    assert (len(x.shape) == 2 and x.shape == y.shape)  # time series must have same length and dimensionality
+    x_acf = np.apply_along_axis(lambda z: stattools.acf(z, nlags=z.shape[0]), 0, x)
+    y_acf = np.apply_along_axis(lambda z: stattools.acf(z, nlags=z.shape[0]), 0, y)
+    weights = np.linspace(1.0, 0.0, x.shape[0])
+    d = np.sqrt(np.sum(np.expand_dims(weights, axis=1) * np.square(x_acf - y_acf), axis=0))
+    return np.sum(d)
