@@ -57,6 +57,18 @@ TODO
 
 The heatmap-generating network is trained when `--heatmap` is set to `True`.
 
+**29/07/19 update**: The training procedure of the heatmap network now follows [1] and [5] (page 6: "We set its initial value to 0.1 so that the network more focuses on learning the representative features at the early stage, and it is increased to 0.9 after 60 epochs to fine-tune the localizer.").
+
+The clustering module and heatmap network are trained together with a weighted KL-divergence loss:
+
+$$\mathcal{L} = (1 - \eta) \mathcal{L}_{clust} + \eta \mathcal{L}_{heatmap}$$
+
+At the beginning of training, the weight of the heatmap loss is fixed to a small value $\eta$, and after a specified number of epochs, it is increased to a large value for finetuning. This is controlled by 3 hyper-parameters:
+
+* `initial_heatmap_loss_weight`: initial weight of heatmap loss vs clustering loss (default: 0.1 as in [5])
+* `final_heatmap_loss_weight`: final weight of heatmap loss vs clustering loss (heatmap finetuning) (default: 0.9 as in [5])
+* `finetune_heatmap_at_epoch`: epoch where heatmap finetuning starts
+
 TODO
 
 ## Dependencies
@@ -84,3 +96,5 @@ The only other implementation available on github is [saeeeeru/dtc-tensorflow](h
 > [3] Bagnall, A., Dau, H. A., Lines, J., Flynn, M., Large, J., Bostrom, A., … Keogh, E. (2018). The UEA multivariate time series classification archive, 2018, 1–36. http://arxiv.org/abs/1811.00075
 
 > [4] Tavenard, R. (2017). tslearn: A machine learning toolkit dedicated to time-series data. https://github.com/rtavenar/tslearn
+
+> [5] Hwang, S., & Kim, H. E. (2016). Self-transfer learning for weakly supervised lesion localization. Lecture Notes in Computer Science, 9901 LNCS, 239–246. https://doi.org/10.1007/978-3-319-46723-8_28
