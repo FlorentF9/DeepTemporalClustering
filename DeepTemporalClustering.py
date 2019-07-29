@@ -320,6 +320,7 @@ class DTC:
             save_epochs=10,
             batch_size=64,
             tol=0.001,
+            patience=5,
             finetune_heatmap_at_epoch=8,
             save_dir='results/tmp'):
         """
@@ -335,6 +336,7 @@ class DTC:
            save_epochs: save model weights every save_epochs epochs
            batch_size: training batch size
            tol: tolerance for stopping criterion
+           patience: patience for stopping criterion
            finetune_heatmap_at_epoch: epoch number where heatmap finetuning will start. Heatmap loss weight will
                                       switch from `self.initial_heatmap_loss_weight` to `self.final_heatmap_loss_weight`
            save_dir: path to existing directory where weights and logs are saved
@@ -358,6 +360,7 @@ class DTC:
         logwriter.writeheader()
 
         y_pred_last = None
+        patience_cnt = 0
 
         print('Training for {} epochs.\nEvaluating every {} and saving model every {} epochs.'.format(epochs, eval_epochs, save_epochs))
 
@@ -418,9 +421,14 @@ class DTC:
                     assignment_changes = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
                 y_pred_last = y_pred
                 if epoch > 0 and assignment_changes < tol:
-                    print('Assignment changes {} < {} tolerance threshold. Stopping training.'.format(assignment_changes, tol))
-                    logfile.close()
-                    break
+                    patience_cnt += 1
+                    print('Assignment changes {} < {} tolerance threshold. Patience: {}/{}.'.format(assignment_changes, tol, patience_cnt, patience))
+                    if patience_cnt >= patience:
+                        print('Reached max patience. Stopping training.')
+                        logfile.close()
+                        break
+                else:
+                    patience_cnt = 0
 
             # Save intermediate model and plots
             if epoch % save_epochs == 0:
@@ -464,6 +472,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_epochs', default=10, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--tol', default=0.001, type=float, help='tolerance for stopping criterion')
+    parser.add_argument('--patience', default=5, type=int, help='patience for stopping criterion')
     parser.add_argument('--finetune_heatmap_at_epoch', default=8, type=int, help='epoch where heatmap finetuning starts')
     parser.add_argument('--initial_heatmap_loss_weight', default=0.1, type=float, help='initial weight of heatmap loss vs clustering loss')
     parser.add_argument('--final_heatmap_loss_weight', default=0.9, type=float, help='final weight of heatmap loss vs clustering loss (heatmap finetuning)')
@@ -520,7 +529,7 @@ if __name__ == "__main__":
     # Fit model
     t0 = time()
     dtc.fit(X_train, y_train, X_val, y_val, args.epochs, args.eval_epochs, args.save_epochs, args.batch_size,
-            args.tol, args.finetune_heatmap_at_epoch, args.save_dir)
+            args.tol, args.patience, args.finetune_heatmap_at_epoch, args.save_dir)
     print('Training time: ', (time() - t0))
 
     # Evaluate
