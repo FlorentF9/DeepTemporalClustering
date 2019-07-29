@@ -13,10 +13,12 @@ from time import time
 
 # Keras
 from keras.models import Model
+from keras.layers import Dense, Reshape, UpSampling2D, Conv2DTranspose, GlobalAveragePooling1D, Softmax
+from keras.losses import kullback_leibler_divergence
+import keras.backend as K
 
 # scikit-learn
 from sklearn.cluster import AgglomerativeClustering, KMeans
-from keras.layers import Dense, Reshape, UpSampling2D, Conv2DTranspose, GlobalAveragePooling1D, Softmax
 
 # Dataset helper function
 from datasets import load_data
@@ -68,6 +70,10 @@ class DTC:
         self.model = self.autoencoder = self.encoder = self.decoder = None
         if self.heatmap:
             self.heatmap_model = None
+            self.heatmap_loss_weight = None
+            self.initial_heatmap_loss_weight = None
+            self.final_heatmap_loss_weight = None
+            self.finetune_heatmap_at_epoch = None
 
     def initialize(self):
         """
@@ -119,16 +125,37 @@ class DTC:
         """
         return self.model.get_layer(name='TSClustering').get_weights()[0]
 
-    def compile(self, gamma, optimizer):
+    @staticmethod
+    def weighted_kld(loss_weight):
+        """
+        Custom KL-divergence loss with a variable weight parameter
+        """
+        def loss(y_true, y_pred):
+            return loss_weight * kullback_leibler_divergence(y_true, y_pred)
+        return loss
+
+    def on_epoch_end(self, epoch):
+        """
+        Update heatmap loss weight on epoch end
+        """
+        if epoch > self.finetune_heatmap_at_epoch:
+            K.set_value(self.heatmap_loss_weight, self.final_heatmap_loss_weight)
+
+    def compile(self, gamma, optimizer, initial_heatmap_loss_weight=None, final_heatmap_loss_weight=None):
         """
         Compile DTC model
 
         # Arguments
             gamma: coefficient of TS clustering loss
             optimizer: optimization algorithm
+            initial_heatmap_loss_weight (optional): initial weight of heatmap loss vs clustering loss
+            final_heatmap_loss_weight (optional): final weight of heatmap loss vs clustering loss (heatmap finetuning)
         """
         if self.heatmap:
-            self.model.compile(loss=['mse', 'kld', 'kld'],
+            self.initial_heatmap_loss_weight = initial_heatmap_loss_weight
+            self.final_heatmap_loss_weight = final_heatmap_loss_weight
+            self.heatmap_loss_weight = K.variable(self.initial_heatmap_loss_weight)
+            self.model.compile(loss=['mse', DTC.weighted_kld(1.0 - self.heatmap_loss_weight), DTC.weighted_kld(self.heatmap_loss_weight)],
                                loss_weights=[1.0, gamma, gamma],
                                optimizer=optimizer)
         else:
@@ -262,7 +289,8 @@ class DTC:
                  optimizer='adam',
                  epochs=10,
                  batch_size=64,
-                 save_dir='results/tmp'):
+                 save_dir='results/tmp',
+                 verbose=1):
         """
         Pre-train the autoencoder using only MSE reconstruction loss
         Saves weights in h5 format.
@@ -279,7 +307,7 @@ class DTC:
 
         # Begin pretraining
         t0 = time()
-        self.autoencoder.fit(X, X, batch_size=batch_size, epochs=epochs)
+        self.autoencoder.fit(X, X, batch_size=batch_size, epochs=epochs, verbose=verbose)
         print('Pretraining time: ', time() - t0)
         self.autoencoder.save_weights('{}/ae_weights-epoch{}.h5'.format(save_dir, epochs))
         print('Pretrained weights are saved to {}/ae_weights-epoch{}.h5'.format(save_dir, epochs))
@@ -292,6 +320,7 @@ class DTC:
             save_epochs=10,
             batch_size=64,
             tol=0.001,
+            finetune_heatmap_at_epoch=8,
             save_dir='results/tmp'):
         """
         Training procedure
@@ -306,10 +335,15 @@ class DTC:
            save_epochs: save model weights every save_epochs epochs
            batch_size: training batch size
            tol: tolerance for stopping criterion
+           finetune_heatmap_at_epoch: epoch number where heatmap finetuning will start. Heatmap loss weight will
+                                      switch from `self.initial_heatmap_loss_weight` to `self.final_heatmap_loss_weight`
            save_dir: path to existing directory where weights and logs are saved
         """
         if not self.pretrained:
             print('Autoencoder was not pre-trained!')
+
+        if self.heatmap:
+            self.finetune_heatmap_at_epoch = finetune_heatmap_at_epoch
 
         # Logging file
         logfile = open(save_dir + '/dtc_log.csv', 'w')
@@ -331,7 +365,7 @@ class DTC:
 
             # Compute cluster assignments for training set
             q = self.model.predict(X_train)[1]
-            p = self.target_distribution(q)
+            p = DTC.target_distribution(q)
 
             # Evaluate losses and metrics on training set
             if epoch % eval_epochs == 0:
@@ -342,7 +376,7 @@ class DTC:
                 y_pred = q.argmax(axis=1)
                 if X_val is not None:
                     q_val = self.model.predict(X_val)[1]
-                    p_val = self.target_distribution(q_val)
+                    p_val = DTC.target_distribution(q_val)
                     y_val_pred = q_val.argmax(axis=1)
 
                 print('epoch {}'.format(epoch))
@@ -368,14 +402,14 @@ class DTC:
                     logdict['nmi'] = metrics.normalized_mutual_info_score(y_train, y_pred)
                     logdict['ari'] = metrics.adjusted_rand_score(y_train, y_pred)
                     print('[Train] - Acc={:f}, Pur={:f}, NMI={:f}, ARI={:f}'.format(logdict['acc'], logdict['pur'],
-                                                                                              logdict['nmi'], logdict['ari']))
+                                                                                    logdict['nmi'], logdict['ari']))
                 if y_val is not None:
                     logdict['acc_val'] = cluster_acc(y_val, y_val_pred)
                     logdict['pur_val'] = cluster_purity(y_val, y_val_pred)
                     logdict['nmi_val'] = metrics.normalized_mutual_info_score(y_val, y_val_pred)
                     logdict['ari_val'] = metrics.adjusted_rand_score(y_val, y_val_pred)
                     print('[Val] - Acc={:f}, Pur={:f}, NMI={:f}, ARI={:f}'.format(logdict['acc_val'], logdict['pur_val'],
-                                                                                            logdict['nmi_val'], logdict['ari_val']))
+                                                                                  logdict['nmi_val'], logdict['ari_val']))
 
                 logwriter.writerow(logdict)
 
@@ -396,6 +430,7 @@ class DTC:
             # Train for one epoch
             if self.heatmap:
                 self.model.fit(X_train, [X_train, p, p], epochs=1, batch_size=batch_size, verbose=False)
+                self.on_epoch_end(epoch)
             else:
                 self.model.fit(X_train, [X_train, p], epochs=1, batch_size=batch_size, verbose=False)
 
@@ -429,6 +464,9 @@ if __name__ == "__main__":
     parser.add_argument('--save_epochs', default=10, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--tol', default=0.001, type=float, help='tolerance for stopping criterion')
+    parser.add_argument('--finetune_heatmap_at_epoch', default=8, type=int, help='epoch where heatmap finetuning starts')
+    parser.add_argument('--initial_heatmap_loss_weight', default=0.1, type=float, help='initial weight of heatmap loss vs clustering loss')
+    parser.add_argument('--final_heatmap_loss_weight', default=0.9, type=float, help='final weight of heatmap loss vs clustering loss (heatmap finetuning)')
     parser.add_argument('--save_dir', default='results/tmp')
     args = parser.parse_args()
     print(args)
@@ -465,7 +503,8 @@ if __name__ == "__main__":
     optimizer = 'adam'
     dtc.initialize()
     dtc.model.summary()
-    dtc.compile(gamma=args.gamma, optimizer=optimizer)
+    dtc.compile(gamma=args.gamma, optimizer=optimizer, initial_heatmap_loss_weight=args.initial_heatmap_loss_weight,
+                final_heatmap_loss_weight=args.final_heatmap_loss_weight)
 
     # Load pre-trained AE weights or pre-train
     if args.ae_weights is None and args.pretrain_epochs > 0:
@@ -480,8 +519,8 @@ if __name__ == "__main__":
 
     # Fit model
     t0 = time()
-    dtc.fit(X_train, y_train, X_val, y_val, args.epochs, args.eval_epochs,
-            args.save_epochs, args.batch_size, args.tol, args.save_dir)
+    dtc.fit(X_train, y_train, X_val, y_val, args.epochs, args.eval_epochs, args.save_epochs, args.batch_size,
+            args.tol, args.finetune_heatmap_at_epoch, args.save_dir)
     print('Training time: ', (time() - t0))
 
     # Evaluate
