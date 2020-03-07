@@ -42,7 +42,7 @@ class TSClusteringLayer(Layer):
         input_dim = input_shape[2]
         input_steps = input_shape[1]
         self.input_spec = InputSpec(dtype=K.floatx(), shape=(None, input_steps, input_dim))
-        self.clusters = self.add_weight((self.n_clusters, input_steps, input_dim), initializer='glorot_uniform', name='cluster_centers')
+        self.clusters = self.add_weight(shape=(self.n_clusters, input_steps, input_dim), initializer='glorot_uniform', name='cluster_centers')
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
