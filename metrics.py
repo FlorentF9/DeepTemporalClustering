@@ -7,7 +7,7 @@ Performance metric functions
 
 import numpy as np
 from sklearn import metrics
-from sklearn.utils.linear_assignment_ import linear_assignment
+from scipy.optimize import linear_sum_assignment
 from sklearn.preprocessing import label_binarize
 
 
@@ -28,8 +28,8 @@ def cluster_acc(y_true, y_pred):
     w = np.zeros((D, D), dtype=np.int64)
     for i in range(y_pred.size):
         w[y_pred[i], y_true[i]] += 1
-    ind = linear_assignment(w.max() - w)
-    return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size
+    row_ind, col_ind = linear_sum_assignment(w.max() - w)
+    return w[row_ind, col_ind].sum() * 1.0 / y_pred.size
 
 
 def cluster_purity(y_true, y_pred):
