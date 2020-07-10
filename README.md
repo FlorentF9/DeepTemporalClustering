@@ -75,7 +75,7 @@ TODO
 
 This implementation was written for Python 3.x.
 
-Dependencies: keras, scikit-learn, numpy, tslearn (use [this fork](https://github.com/yichangwang/tslearn) for multivariate datasets archive).
+Dependencies: keras, numpy, scikit-learn, scipy, statsmodels, tslearn (be sure to use tslearn>=0.3.1 for the multivariate datasets).
 
 ## Other DTC implementations
 

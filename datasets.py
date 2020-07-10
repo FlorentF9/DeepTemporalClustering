@@ -11,12 +11,8 @@ from tslearn.preprocessing import TimeSeriesScalerMeanVariance
 from sklearn.preprocessing import LabelEncoder
 
 ucr = UCR_UEA_datasets()
-# try to use UCR/UEA univariate and multivariate datasets.
-# requires forked version of tslearn from https://github.com/yichangwang/tslearn
-try:
-    all_ucr_datasets = ucr.list_datasets() + ucr._multivariate_dataset
-except AttributeError:
-    all_ucr_datasets = ucr.list_datasets()
+# UCR/UEA univariate and multivariate datasets.
+all_ucr_datasets = ucr.list_datasets()
 
 
 def load_ucr(dataset='CBF'):
