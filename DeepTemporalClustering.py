@@ -537,8 +537,9 @@ if __name__ == "__main__":
     results = {}
     q = dtc.model.predict(X_train)[1]
     y_pred = q.argmax(axis=1)
-    results['acc'] = cluster_acc(y_train, y_pred)
-    results['pur'] = cluster_purity(y_train, y_pred)
-    results['nmi'] = metrics.normalized_mutual_info_score(y_train, y_pred)
-    results['ari'] = metrics.adjusted_rand_score(y_train, y_pred)
+    if y_train is not None:
+        results['acc'] = cluster_acc(y_train, y_pred)
+        results['pur'] = cluster_purity(y_train, y_pred)
+        results['nmi'] = metrics.normalized_mutual_info_score(y_train, y_pred)
+        results['ari'] = metrics.adjusted_rand_score(y_train, y_pred)
     print(results)
