@@ -50,7 +50,7 @@ class DTC:
     """
 
     def __init__(self, n_clusters, input_dim, timesteps,
-                 n_filters=50, kernel_size=10, strides=1, pool_size=10, n_units=[50, 1],
+                 n_filters=50, kernel_size=10, strides=1, pool_size=8, n_units=[50, 1],
                  alpha=1.0, dist_metric='eucl', cluster_init='kmeans', heatmap=False):
         assert(timesteps % pool_size == 0)
         self.n_clusters = n_clusters
@@ -459,7 +459,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_filters', default=50, type=int, help='number of filters in convolutional layer')
     parser.add_argument('--kernel_size', default=10, type=int, help='size of kernel in convolutional layer')
     parser.add_argument('--strides', default=1, type=int, help='strides in convolutional layer')
-    parser.add_argument('--pool_size', default=10, type=int, help='pooling size in max pooling layer')
+    parser.add_argument('--pool_size', default=8, type=int, help='pooling size in max pooling layer')
     parser.add_argument('--n_units', nargs=2, default=[50, 1], type=int, help='numbers of units in the BiLSTM layers')
     parser.add_argument('--gamma', default=1.0, type=float, help='coefficient of clustering loss')
     parser.add_argument('--alpha', default=1.0, type=float, help='coefficient in Student\'s kernel')
