@@ -42,6 +42,7 @@ $ streamlit run streamlit_app.py
 ```
 
 On Streamlit Cloud, set the app entrypoint to `streamlit_app.py` and adjust the sidebar controls to choose the dataset and training hyperparameters.
+Add a `runtime.txt` file with `python-3.10` so TensorFlow installs correctly on the hosted environment; newer default Python versions can miss compatible wheels and trigger `ModuleNotFoundError: No module named "tensorflow"` during app startup.
 
 ## Example
 
