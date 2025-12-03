@@ -32,6 +32,17 @@ To train a DTC model, run the main script `DeepTemporalClustering.py` with comma
 $ python3 DeepTemporalClustering.py --help
 ```
 
+## Streamlit UI
+
+You can also explore the model configuration options from a browser-friendly interface. To launch the app locally:
+
+```shell
+$ pip install -r requirements.txt
+$ streamlit run streamlit_app.py
+```
+
+On Streamlit Cloud, set the app entrypoint to `streamlit_app.py` and adjust the sidebar controls to choose the dataset and training hyperparameters.
+
 ## Example
 
 TODO
