@@ -1,4 +1,4 @@
-keras
+tensorflow>=2.15,<2.16
 numpy
 scikit-learn
 scipy
