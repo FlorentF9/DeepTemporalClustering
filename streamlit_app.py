@@ -125,11 +125,23 @@ def main():
     with st.sidebar:
         st.header("Configuration")
         dataset_name = st.selectbox("Dataset", sorted(all_ucr_datasets), index=sorted(all_ucr_datasets).index("CBF"))
+
+        # Determine valid pool sizes for the selected dataset (pool_size must divide timesteps)
+        X_sample, _ = load_dataset(dataset_name)
+        timesteps = X_sample.shape[1]
+        valid_pool_sizes = [size for size in range(1, timesteps + 1) if timesteps % size == 0]
+        default_pool_size = 8 if 8 in valid_pool_sizes else max([size for size in valid_pool_sizes if size <= 8], default=min(valid_pool_sizes))
+
         n_clusters = st.number_input("Clusters (0 = infer from labels)", min_value=0, value=0, step=1)
         n_filters = st.number_input("Conv filters", min_value=1, value=50, step=1)
         kernel_size = st.number_input("Kernel size", min_value=1, value=10, step=1)
         strides = st.number_input("Strides", min_value=1, value=1, step=1)
-        pool_size = st.number_input("Pool size", min_value=1, value=8, step=1)
+        pool_size = st.selectbox(
+            "Pool size",
+            valid_pool_sizes,
+            index=valid_pool_sizes.index(default_pool_size),
+            help=f"Must divide the sequence length ({timesteps} timesteps).",
+        )
         n_units_first = st.number_input("BiLSTM units (first layer)", min_value=1, value=50, step=1)
         n_units_second = st.number_input("BiLSTM units (second layer)", min_value=1, value=1, step=1)
         gamma = st.number_input("Gamma (clustering loss weight)", min_value=0.0, value=1.0, step=0.1)
