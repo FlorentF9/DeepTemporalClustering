@@ -1,6 +1,7 @@
-keras
+tensorflow>=2.15,<2.16
 numpy
 scikit-learn
 scipy
 statsmodels
 tslearn>=0.3.1
+streamlit
